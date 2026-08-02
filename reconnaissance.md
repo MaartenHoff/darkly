@@ -20,3 +20,7 @@
 ## Configuration & Misc (A05 via F12)
 - XML parser uses standard library (`stdlib xml.etree`), secure `defusedxml` was disabled -> possible target for XML attacks
 - Easter egg / JS keylogger found (Konami Code): Reveals that the user `jdoe` has not changed their default password.
+
+## probable entry points
+- in the console it is written: "Hey, curious one. You found the console. That's already step 1" so that might just be the step 1
+- or use plain text options (Login or forgot password) to try a sql injection
