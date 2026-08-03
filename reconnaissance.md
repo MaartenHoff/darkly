@@ -20,6 +20,7 @@
 ## Configuration & Misc (A05 via F12)
 - XML parser uses standard library (`stdlib xml.etree`), secure `defusedxml` was disabled -> possible target for XML attacks
 - Easter egg / JS keylogger found (Konami Code): Reveals that the user `jdoe` has not changed their default password.
+- Frontend(sources - console_eggs.js) exposes `window.jwtDecode` function: Allows decoding of JWTs directly in the browser console and reveals the exact payload structure needed for future token manipulation (Privilege Escalation).
 
 ## probable entry points
 - in the console it is written: "Hey, curious one. You found the console. That's already step 1" so that might just be the step 1
