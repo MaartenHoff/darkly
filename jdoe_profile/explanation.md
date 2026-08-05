@@ -1,7 +1,7 @@
 
 
 ## Vulnerability: Weak Password & Missing Brute-Force Protection
-### OWASP Category: A07 - Identification and Authentication Failures
+### OWASP Category: A07:2021 - Identification and Authentication Failures
 
 ### How it works
 first step getting jdoe's email address: through forums then a comment from john doe -> view profile (`http://localhost:4942/profile/z4p1cnx47mfy50f`) 

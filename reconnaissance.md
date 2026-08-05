@@ -39,3 +39,13 @@
 ## Probable Entry Points (Initial Access)
 1. **Direct Login (jdoe):** Since the password is known to be weak and related to "rock", a manual login attempt or a short dictionary attack on `jdoe` using `rockyou.txt` is a primary entry point.
 2. **Account Takeover (ATO) via Reset:** Because the reset token is simply `MD5(email)`, we can bypass the email requirement entirely. We can calculate the MD5 hash of any targeted email and use it to instantly change their password via the reset URL.
+
+##
+
+
+## Authenticated Surface - Role: STUDENT (Logged in as `jdoe`)
+- **Access Level:** The sidebar now displays "Access Level: Student".
+- **New Endpoints:** 
+    - `/settings`: Allows updating "Personal info", uploading an "Avatar" image (File Upload Vulnerability testing ground), and changing the password.
+    - `/agenda`: Features an "Import XML agenda" function.
+- **XXE Vulnerability Confirmed (A05:2021):** The `/agenda` endpoint accepts XML file uploads. The UI explicitly states "External entities are supported", confirming the use of the unsafe `stdlib xml.etree` parser found earlier via F12. This is a direct vector for Local File Inclusion (LFI) or Server-Side Request Forgery (SSRF) via XXE.
