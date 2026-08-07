@@ -76,11 +76,18 @@ homepage nav/links; observed `curl` codes).
 | `/api/grades` | 302→`/login` | `id`? | robots; IDOR target |
 | `/projects/download` | 302→`/login` | `file=` | **arbitrary file download / path traversal** (comment) |
 | `/api/docs-internal` | 302→`/login` | — | internal API docs ("no staff check" per comment) |
-| `/api/profile` | ? | PATCH `role` | **mass assignment / privesc** (comment) |
-| `/api/telemetry/heartbeat` | ? | — | from `console_eggs.js` |
+| `/api/profile` | 405 `[PATCH]` | PATCH `role` | **mass assignment / privesc** (comment); needs auth |
+| `/api/telemetry/heartbeat` | 405 `[POST]` | JSON `ts/page/ua` | from `console_eggs.js`; black-box, no auth |
+| `/reset-password` | 200 | — | **password reset** (wordlist); token = `MD5(email)` per team recon |
+| `/profile/upload` | 302→`/login` | file | **file upload** (wordlist); "whitelist removed" per team recon |
+| `/api/users` | 302→`/login` | — | users API (wordlist); IDOR / user-enum target |
 | `/static/js/console_eggs.js` | 200 | — | `_k42` blob = console egg (π digits) |
 | `/static/css/main.css` | 200 | — | asset |
-| `/register`, `/signup` | 404 | — | no obvious reg path (via PocketBase?) |
+| `/register`, `/signup` | 404 | — | no reg route (auth via `/login` + PocketBase) |
+
+_Discovery: passive (sitemap/robots/nav/JS/comments) + an own curl wordlist sweep
+(`/tmp/sweep.sh`) for unlinked routes. **Full completion pending post-auth** — read
+`/api/docs-internal` (authoritative route list) or source via `/projects/download`._
 
 _Session cookie: JWT named `session`, **not HttpOnly** (JS-readable per console_eggs.js)._
 

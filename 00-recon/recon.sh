@@ -21,11 +21,26 @@ for p in / /projects /forum /newsletter /login /staff; do
 done
 curl -s "$BASE/" | grep -oiE 'src="[^"]*\.js"'   # external JS (review console_eggs.js by hand)
 
-echo; echo "### INFO-06  Routes ###"
+echo; echo "### INFO-06  Entry points ###"
+echo "-- routes (code / redirect) --"
 for p in / /projects /forum /newsletter /agenda /login /logout /redirect \
-         /admin /staff /backup /internal/config /api/grades /register; do
-  echo "$p -> $(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")"
+         /admin /staff /backup /internal/config /api/grades /projects/download \
+         /api/docs-internal /api/profile /api/telemetry/heartbeat /register; do
+  h=$(curl -s -D - -o /dev/null "$BASE$p")
+  code=$(printf '%s' "$h" | head -1 | awk '{print $2}')
+  loc=$(printf '%s' "$h" | awk 'tolower($1)=="location:"{print $2}' | tr -d '\r')
+  allow=$(printf '%s' "$h" | awk 'tolower($1)=="allow:"{sub(/^[^ ]* /,"");print}' | tr -d '\r')
+  echo "$p -> ${code:-000}${loc:+ -> $loc}${allow:+  [Allow: $allow]}"
 done
+echo "-- form fields (POST/GET input) --"
+for p in /login /newsletter /forum; do
+  echo "  $p:"
+  curl -s "$BASE$p" | grep -oiE '<form[^>]*>|<input[^>]*>|<textarea[^>]*>' \
+    | grep -oiE 'method="[^"]*"|action="[^"]*"|name="[^"]*"' | sed 's/^/    /'
+done
+echo "-- custom headers + session cookie --"
+curl -s -D - -o /dev/null "$BASE/" | grep -iE '^x-' | tr -d '\r'
+curl -s -D - -o /dev/null "$BASE/logout" | grep -i '^set-cookie' | tr -d '\r'
 
 echo; echo "### PocketBase ($PB) ###"
 curl -s "$PB/api/health"; echo
