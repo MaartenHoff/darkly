@@ -54,3 +54,48 @@
 * **SSRF (Server-Side Request Forgery):** `/internal/config` throws 403 but is allegedly restricted to localhost only.
 * **LFI / Path Traversal:** "Creative filenames" in the resources section lead to odd behavior.
 * **Headers:** Response headers on the site leak additional, unintended information.
+## Stack Fingerprint (WSTG-INFO-02)
+
+| Component   | Version              | How confirmed                                       |
+|-------------|----------------------|-----------------------------------------------------|
+| Web server  | uvicorn 0.24.0 (ASGI)| `Server` header + malformed-request behaviour       |
+| Framework   | FastAPI 0.104 (Starlette) | 422 Pydantic body on `POST /newsletter` (header-independent) |
+| Runtime     | Python 3.11          | `x-powered-by` header                               |
+| Validation  | Pydantic 2.13        | leaked in the 422 error `url` field                 |
+| Backend     | PocketBase (:8090)   | `x-pocketbase` header + `/api/health`               |
+
+Debug headers on every response: `x-powered-by`, `x-pocketbase`, `x-42-internal: campus=paris`.
+**Impact:** exact versions → targeted CVE lookup; `x-pocketbase` discloses the backend.
+**Fix:** strip `Server`/`X-Powered-By`/`x-*` headers, keep the stack patched, front with a reverse proxy.
+
+## Reproduction (own curl/python — no turnkey tools)
+
+```bash
+B=http://localhost:4942
+# INFO-02 fingerprint
+curl -s -D - -o /dev/null "$B/"                                         # versions + x-* headers
+curl -s -X POST "$B/newsletter" -H 'Content-Type: application/json' -d '{}'  # 422 -> FastAPI + Pydantic ver
+# INFO-03 metafiles
+curl -s "$B/robots.txt"; curl -s "$B/sitemap.xml"
+# INFO-05 page content
+for p in / /projects /forum /newsletter /login /staff; do curl -s "$B$p" | grep -oE '<!--.*-->'; done
+curl -s "$B/static/js/console_eggs.js"
+# INFO-06 routes (code + Allow on 405)
+for p in / /login /admin /staff /backup /api/grades /api/profile /reset-password /api/users; do
+  echo "$p -> $(curl -s -o /dev/null -w '%{http_code}' "$B$p")"; done
+```
+
+## Page content & JS (WSTG-INFO-05) — detail
+
+Per-page HTML comments (each a lead):
+- `/projects`: `/projects/download` "serves any file" → path traversal; references `faq_darkly.pdf`
+- `/forum`: "HTML supported… goes straight into the DB" → stored XSS
+- `/newsletter`: "echoes email back… unescaped… `<script>` worked" → reflected + stored XSS
+- `/staff`: `/api/docs-internal` (no staff check); `PATCH /api/profile` accepts `role`; JWT config at `/internal/config`
+
+`console_eggs.js`:
+- session is a **JWT**, read via `document.cookie` → confirms cookie is **not HttpOnly**
+- endpoint `/api/telemetry/heartbeat` (POST, black-box, no auth)
+- `_k42` / `flags:[3,1,4,1,5,9,2,6]` = digits of π → decorative **red herring**, no secret
+
+Source maps: none (404). Redirect bodies: no content leak (Starlette `{"detail":"Found"}`).
