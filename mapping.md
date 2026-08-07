@@ -1,4 +1,43 @@
 # Reconnaissance
+
+## Attack chain — how the pieces connect
+
+The findings below aren't isolated; they form a ladder from anonymous visitor to
+application admin. Read this first — it says what each step *does* and what it
+*gets you*. (Steps 1–3 confirmed; 4–5 are the mapped next steps, not yet tested.)
+
+```
+[1] anonymous visitor
+     │  View Source → devs left HTML comments: jdoe's email + "password is in rockyou.txt"
+     ▼
+[2] brute-force /login with rockyou.txt  →  password: abc123
+     │  now logged in as jdoe (role: student); server sets a "session" cookie (a JWT)
+     ▼
+[3] session cookie unlocks the API
+     │  GET /api/grades?student=<jdoe-id> → a grade record contains a FLAG
+     │  GET /api/docs-internal           → docs say the profile "role" field is editable
+     ▼
+[4] PATCH /api/profile {"role":"god"}     →  promote own account to admin
+     ▼
+[5] role=god  →  /admin opens (was 403)   →  admin-level flags
+```
+
+**In plain English:**
+
+1. **Info leak in the page source.** Developers left comments in the HTML (invisible
+   in the browser, visible via *View Source*) revealing jdoe's email and that his
+   password is a common one from `rockyou.txt`. → *Gets you:* a username + a crack hint.
+2. **Weak password, no rate-limit.** Looping `rockyou.txt` passwords against `/login`
+   works (no lockout); jdoe's is `abc123`. → *Gets you:* a logged-in session as a normal "student".
+3. **Broken access control on the API.** With that session, `GET /api/grades?student={id}`
+   returns records containing flags, and `/api/docs-internal` documents that the profile
+   `role` field is editable. → *Gets you:* a flag + the info for the next step.
+4. **Privilege escalation (mass assignment).** The profile-update API accepts a `role`
+   field it never should: `PATCH /api/profile {"role":"god"}` sets your own account to the
+   top level. → *Gets you:* admin rights.
+5. **Admin access.** As `god`, `/admin` (previously `403 Forbidden`) opens. → *Gets you:*
+   the admin-level flags — the top of the chain.
+
 ## Endpoints
 | Path | Code | Params | Notes / source |
 |------|------|--------|----------------|
