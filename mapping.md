@@ -68,22 +68,7 @@ Debug headers on every response: `x-powered-by`, `x-pocketbase`, `x-42-internal:
 **Impact:** exact versions → targeted CVE lookup; `x-pocketbase` discloses the backend.
 **Fix:** strip `Server`/`X-Powered-By`/`x-*` headers, keep the stack patched, front with a reverse proxy.
 
-## Reproduction (own curl/python — no turnkey tools)
-
-```bash
-B=http://localhost:4942
-# INFO-02 fingerprint
-curl -s -D - -o /dev/null "$B/"                                         # versions + x-* headers
-curl -s -X POST "$B/newsletter" -H 'Content-Type: application/json' -d '{}'  # 422 -> FastAPI + Pydantic ver
-# INFO-03 metafiles
-curl -s "$B/robots.txt"; curl -s "$B/sitemap.xml"
-# INFO-05 page content
-for p in / /projects /forum /newsletter /login /staff; do curl -s "$B$p" | grep -oE '<!--.*-->'; done
-curl -s "$B/static/js/console_eggs.js"
-# INFO-06 routes (code + Allow on 405)
-for p in / /login /admin /staff /backup /api/grades /api/profile /reset-password /api/users; do
-  echo "$p -> $(curl -s -o /dev/null -w '%{http_code}' "$B$p")"; done
-```
+**Reproduce:** run `00-recon/recon.sh` (fingerprint + metafiles + page content + routes + PocketBase).
 
 ## Page content & JS (WSTG-INFO-05) — detail
 
