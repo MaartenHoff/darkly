@@ -1,43 +1,5 @@
 # Reconnaissance
 
-## Attack chain — how the pieces connect
-
-The findings below aren't isolated; they form a ladder from anonymous visitor to
-application admin. Read this first — it says what each step *does* and what it
-*gets you*. (Steps 1–3 confirmed; 4–5 are the mapped next steps, not yet tested.)
-
-```
-[1] anonymous visitor
-     │  View Source → devs left HTML comments: jdoe's email + "password is in rockyou.txt"
-     ▼
-[2] brute-force /login with rockyou.txt  →  password: abc123
-     │  now logged in as jdoe (role: student); server sets a "session" cookie (a JWT)
-     ▼
-[3] session cookie unlocks the API
-     │  GET /api/grades?student=<jdoe-id> → a grade record contains a FLAG
-     │  GET /api/docs-internal           → docs say the profile "role" field is editable
-     ▼
-[4] PATCH /api/profile {"role":"god"}     →  promote own account to admin
-     ▼
-[5] role=god  →  /admin opens (was 403)   →  admin-level flags
-```
-
-**In plain English:**
-
-1. **Info leak in the page source.** Developers left comments in the HTML (invisible
-   in the browser, visible via *View Source*) revealing jdoe's email and that his
-   password is a common one from `rockyou.txt`. → *Gets you:* a username + a crack hint.
-2. **Weak password, no rate-limit.** Looping `rockyou.txt` passwords against `/login`
-   works (no lockout); jdoe's is `abc123`. → *Gets you:* a logged-in session as a normal "student".
-3. **Broken access control on the API.** With that session, `GET /api/grades?student={id}`
-   returns records containing flags, and `/api/docs-internal` documents that the profile
-   `role` field is editable. → *Gets you:* a flag + the info for the next step.
-4. **Privilege escalation (mass assignment).** The profile-update API accepts a `role`
-   field it never should: `PATCH /api/profile {"role":"god"}` sets your own account to the
-   top level. → *Gets you:* admin rights.
-5. **Admin access.** As `god`, `/admin` (previously `403 Forbidden`) opens. → *Gets you:*
-   the admin-level flags — the top of the chain.
-
 ## Endpoints
 | Path | Code | Params | Notes / source |
 |------|------|--------|----------------|
@@ -93,33 +55,49 @@ application admin. Read this first — it says what each step *does* and what it
 * **SSRF (Server-Side Request Forgery):** `/internal/config` throws 403 but is allegedly restricted to localhost only.
 * **LFI / Path Traversal:** "Creative filenames" in the resources section lead to odd behavior.
 * **Headers:** Response headers on the site leak additional, unintended information.
-## Stack Fingerprint (WSTG-INFO-02)
+## What the site is built with (fingerprinting)
 
-| Component   | Version              | How confirmed                                       |
-|-------------|----------------------|-----------------------------------------------------|
-| Web server  | uvicorn 0.24.0 (ASGI)| `Server` header + malformed-request behaviour       |
-| Framework   | FastAPI 0.104 (Starlette) | 422 Pydantic body on `POST /newsletter` (header-independent) |
-| Runtime     | Python 3.11          | `x-powered-by` header                               |
-| Validation  | Pydantic 2.13        | leaked in the 422 error `url` field                 |
-| Backend     | PocketBase (:8090)   | `x-pocketbase` header + `/api/health`               |
+The site openly tells us which software and **exact versions** it runs. That's a
+problem: with an exact version, an attacker can look up known bugs (CVEs) for it.
 
-Debug headers on every response: `x-powered-by`, `x-pocketbase`, `x-42-internal: campus=paris`.
-**Impact:** exact versions → targeted CVE lookup; `x-pocketbase` discloses the backend.
-**Fix:** strip `Server`/`X-Powered-By`/`x-*` headers, keep the stack patched, front with a reverse proxy.
+| Part            | What it runs        | Where we saw it                          |
+|-----------------|---------------------|------------------------------------------|
+| Web server      | uvicorn 0.24.0      | the `Server` line in the response        |
+| Framework       | FastAPI 0.104       | the shape of its error pages + a header  |
+| Language        | Python 3.11         | the `x-powered-by` header                |
+| Input validation| Pydantic 2.13       | leaked inside an error message           |
+| Database backend| PocketBase (port 8090) | the `x-powered-by`/`x-pocketbase` header |
+
+On **every** response the site also adds these extra info headers:
+`x-powered-by`, `x-pocketbase`, `x-42-internal: campus=paris`.
+
+- **Why it's bad:** the exact versions let an attacker search for ready-made
+  exploits, and `x-pocketbase` even points them straight at the database backend.
+- **Fix:** remove these headers and keep the software updated.
 
 **Reproduce:** run `00-recon/recon.sh` (fingerprint + metafiles + page content + routes + PocketBase).
 
-## Page content & JS (WSTG-INFO-05) — detail
+## Clues hidden in the page source
 
-Per-page HTML comments (each a lead):
-- `/projects`: `/projects/download` "serves any file" → path traversal; references `faq_darkly.pdf`
-- `/forum`: "HTML supported… goes straight into the DB" → stored XSS
-- `/newsletter`: "echoes email back… unescaped… `<script>` worked" → reflected + stored XSS
-- `/staff`: `/api/docs-internal` (no staff check); `PATCH /api/profile` accepts `role`; JWT config at `/internal/config`
+Developers left **comments in the HTML** — you don't see them on the page, only in
+the browser's "View Source". Each one points to a weakness:
 
-`console_eggs.js`:
-- session is a **JWT**, read via `document.cookie` → confirms cookie is **not HttpOnly**
-- endpoint `/api/telemetry/heartbeat` (POST, black-box, no auth)
-- `_k42` / `flags:[3,1,4,1,5,9,2,6]` = digits of π → decorative **red herring**, no secret
+- **`/projects`** — says `/projects/download` "serves any file you ask for."
+  → we can probably download files we shouldn't (e.g. the server's own code).
+- **`/forum`** — "HTML is supported and goes straight into the database."
+  → we can post a `<script>` that gets saved and runs for every visitor (stored XSS).
+- **`/newsletter`** — "your email is echoed back unescaped… a `<script>` worked."
+  → our input runs in the browser (XSS).
+- **`/staff`** — mentions three things: `/api/docs-internal` (reachable even if you're
+  not staff), that `PATCH /api/profile` lets you set your own `role`, and that the
+  login-token settings live at `/internal/config`.
 
-Source maps: none (404). Redirect bodies: no content leak (Starlette `{"detail":"Found"}`).
+The JavaScript file **`console_eggs.js`** also reveals:
+- the login `session` cookie is a **token that JavaScript can read** — so it's *not*
+  protected (missing the HttpOnly flag), meaning an XSS could steal someone's login.
+- there's a hidden endpoint `/api/telemetry/heartbeat`.
+- a scary-looking `_k42` block is just a **joke** — the numbers `3,1,4,1,5,9,2,6` are
+  the digits of π. No secret there.
+
+Also checked, nothing found: no leftover source-map files, and redirect pages don't
+leak anything.
