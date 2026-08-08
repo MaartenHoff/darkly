@@ -15,8 +15,8 @@
 ---
 
 ## Phase 3: Post-Exploitation & Forced Browsing
-* **New Surface:** `/profile/me/settings` (file uploads missing whitelists) and `/agenda` (XML import confirming an XXE vulnerability).
-* **Breach (Forced Browsing):** An HTML comment leaked the hidden `/api/docs-internal` route. Accessed it using `jdoe`'s valid JWT to leak the internal API structure.
+* **New Surface:** Gained ability to add comments/create posts in `/forum`. Identified `/profile/me/settings` (file uploads missing whitelists) and `/agenda` (XML import confirming an XXE vulnerability). Access to `/admin` still restricted (`{"detail":"Insufficient privileges"}`).
+* **Breach (Forced Browsing):** An HTML comment leaked the hidden `/api/docs-internal` route. Accessed it using `jdoe`'s valid JWT to leak internal API structure and parameters.
 
 ---
 
@@ -26,6 +26,7 @@
 
 ---
 
-## Phase 5: Privilege Escalation (Pending)
-* **Vector (Mass Assignment):** The leaked API docs explicitly state `"role writable via PATCH /api/profile"`. 
-* **Next Step:** Use this endpoint to patch the account's role from `student` to `staff`.
+## Phase 5: Privilege Escalation
+* **Breach (Mass Assignment):** The leaked API docs revealed that the `role` field is writable via `PATCH /api/profile`. Sent a JSON payload (`{"role": "staff"}`) to vertically elevate account privileges.
+* **Result:** Successfully bypassed role-based access controls, unlocking the previously restricted `/staff/dashboard`.
+* **Flag:** `FLAG{just_p4tch_y0ur_0wn_r0l3_lol}`
