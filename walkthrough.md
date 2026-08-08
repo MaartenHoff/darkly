@@ -30,3 +30,12 @@
 * **Breach (Mass Assignment):** The leaked API docs revealed that the `role` field is writable via `PATCH /api/profile`. Sent a JSON payload (`{"role": "staff"}`) to vertically elevate account privileges.
 * **Result:** Successfully bypassed role-based access controls, unlocking the previously restricted `/staff/dashboard`.
 * **Flag:** `FLAG{just_p4tch_y0ur_0wn_r0l3_lol}`
+
+## Next Step??
+- Phishing
+- XXE via (`/agenda`)
+- file upload (`/profile/me/settings`)
+- sql injection (`/newsletter`)
+- md5(email) token forgery
+- mapping with new access
+- Pocketbase /_/
