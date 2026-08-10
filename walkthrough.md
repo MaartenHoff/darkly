@@ -35,7 +35,12 @@
 - Phishing
 - XXE via (`/agenda`)
 - file upload (`/profile/me/settings`)
-- sql injection (`/newsletter`)
+- sql injection (`/newsletter`, `/login`, `/reset-password`)
 - md5(email) token forgery
 - mapping with new access
 - Pocketbase /_/
+
+## Attempts
+- sql injection on `/newsletter` failed
+- sql injection on `/login` failed
+- sql injection on `/reset-password` failed
