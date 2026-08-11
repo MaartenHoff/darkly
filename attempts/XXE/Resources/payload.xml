@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe SYSTEM "file://TARGET_FILE">
+]>
+<agenda>
+  <event>
+    <title>&xxe;</title>
+    <date>2042-01-01</date>
+  </event>
+</agenda>

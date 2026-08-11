@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+  <!ENTITY test SYSTEM "http://127.0.0.1:8080/ping">
+]>
+<agenda>
+  <event>
+    <title>&test;</title>
+    <date>2042-01-01</date>
+  </event>
+</agenda>
