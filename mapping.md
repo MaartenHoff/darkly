@@ -29,7 +29,8 @@
 | `/signup` | 404 | — | page not found |
 
 ## Profiles & Targets
-- **jdoe (The Soft Target):** Uses a short, dictionary-based password  and is explicitly linked to "the most famous list out there `(rockyou.txt)`"
+- **jdoe (The Soft Target):** `jdoe@student.42.tech` (Role: STUDENT) 
+	Uses a short, dictionary-based password  and is explicitly linked to "the most famous list out there `(rockyou.txt)`"
 - **benjamin:** `benjamin@student.42.tech` (Role: STUDENT)
 - **dorian:** `dorian@student.42.tech` (Role: STUDENT)
 - **thanos:** `thanos@student.42.tech` (Role: STUDENT)
