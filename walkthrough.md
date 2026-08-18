@@ -41,6 +41,14 @@
 
 ---
 
+## Phase 7: Session Forgery (Full God-Role Takeover)
+* **Recon:** Homepage HTML deploy-log comment leaked the JWT signing secret history (`jwt secret was "42". wil changed it to "42network".`). Sophie's PocketBase id (`enplwhu8jfo56oi`, role `god`) already known from recon (`mapping.md`).
+* **Breach (JWT Forgery):** Session cookies are unencrypted HS256 JWTs (`header.payload.signature`) — knowing the secret lets anyone sign an arbitrary payload. Forged `{"sub":"enplwhu8jfo56oi","login":"sophie","role":"god","exp":...}` and signed it with `42network` via `openssl dgst -sha256 -hmac`.
+* **Result:** Forged cookie passed signature verification — `GET /admin` returned `200` as `sophie`/`god`, bypassing role checks entirely (no PATCH/mass-assignment needed).
+* **Flag:** `FLAG{md5_1s_4_n4m3pl4t3_n0t_4_l0ck}` *(same flag as Phase 4 — the admin panel's submissions table exposes the identical value via a second, independent vulnerability.)*
+
+---
+
 ## Next Step??
 - Phishing
 - XXE via (`/agenda`)
