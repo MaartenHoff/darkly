@@ -31,11 +31,15 @@
 * **Result:** Successfully bypassed role-based access controls, unlocking the previously restricted `/staff/dashboard`.
 * **Flag:** `FLAG{just_p4tch_y0ur_0wn_r0l3_lol}`
 
+---
+
 ## Phase 6: Unrestricted File Upload
 * **Recon:** Developer logs previously noted the upload whitelist was completely removed.
 * **Breach (File Upload):** Uploaded an arbitrary file payload to the `/upload/avatar` endpoint. The server accepted the file without extension or MIME-type validation.
 * **Result:** The application confirmed the unrestricted upload and returned the flag URL-encoded within the `Location` redirect header.
 * **Flag:** `FLAG{unr3str1ct3d_upl0ad_g0_brrr}`
+
+---
 
 ## Next Step??
 - Phishing
