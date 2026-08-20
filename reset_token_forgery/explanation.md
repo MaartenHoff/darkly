@@ -1,7 +1,7 @@
 # MD5(email) Reset-Token Forgery
 
 > Status: ☒ exploited ☒ explained
-> Flag: _no flag — documented vulnerability only_ (impact: full account takeover)
+> Flag: `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` (via PocketBase `recovery_code` after takeover — shared with `pocketbase_field_exposure/`)
 > WSTG: `WSTG-ATHN-09` (Testing for Weak Password Change or Reset Functionalities) — see [`00-recon/wstg-coverage.md`](../00-recon/wstg-coverage.md)
 
 ## Where
@@ -42,6 +42,25 @@ Tried first against `wil@42network.fr` (STAFF) — blocked:
 block was real (not just a misleading redirect) by attempting to log in with
 the password we'd tried to set: it failed, no session was issued, proving
 wil's real password was untouched.
+
+**Full sweep** (`../reset_all_students/exploit.sh`) against every known
+account:
+
+| Account | Result | recovery_code |
+|---------|--------|---------------|
+| benjamin@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
+| dorian@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
+| thanos@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
+| anne-sophie@student.42.tech | takeover OK | _(empty)_ |
+| jdoe@student.42.tech | SSO-blocked (cadet role) | — |
+| emilie@42.tech | SSO-blocked (cadet) | — |
+| wil@42network.fr | SSO-blocked (staff) | — |
+| sophie@42.tech | SSO-blocked (god) | — |
+
+The flag is shared across benjamin/dorian/thanos — no unique flag per
+account. (The same flag is also exposed independently via the grades API
+and PocketBase field-level disclosure; see
+[`pocketbase_field_exposure/`](../pocketbase_field_exposure/).)
 
 ## Impact
 
