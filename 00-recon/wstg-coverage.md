@@ -21,7 +21,7 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 | INFO-03 | Review webserver metafiles | Fail | `robots.txt` discloses `/admin /staff /internal /backup /api/grades /_/ /static/uploads/`; `sitemap.xml` adds `/projects /forum /newsletter` | [recon notes](notes.md#metafiles--wstg-info-03-review-webserver-metafiles) |
 | INFO-05 | Review webpage content | Fail | per-page HTML comments leak a full roadmap (file-download, XSS, `role` mass-assign, JWT/SSRF, hidden endpoints); JS confirms session JWT not HttpOnly | [recon notes](notes.md#page-content--wstg-info-05-review-web-page-content) |
 | INFO-06 | Identify entry points | Done | route inventory built ([notes](notes.md#endpoints--parameters)); nav adds `/agenda`, `/redirect`; no `/register` path found | — |
-| CLNT-04 | Open redirect | Fail | `/redirect?next=` reflects arbitrary URL into `307 Location`, no allow-list (verified external + internal) | _tbd_ |
+| CLNT-04 | Open redirect | Fail | `/redirect?next=` reflects arbitrary URL into `307 Location`, no allow-list (verified external + internal) | [redirect_phishing](../redirect_phishing/explanation.md) (no flag) |
 | CONF-04 | Backup & unreferenced files | Open | `/backup` → 403 (exists); enumerate | — |
 | CONF-05 | Enumerate admin interfaces | Open | PocketBase admin `/_/` (200); `/admin` → 302 login; `/api/docs-internal` (302, "no staff check") | — |
 | CONF-06 | Test HTTP methods | Open | verb-probe key routes (`OPTIONS`, `Allow`) | — |
