@@ -80,7 +80,7 @@
 
 ## Phase 12: Stored XSS → Cookie Exfiltration
 * **Recon:** `/forum` supports HTML in posts ("HTML is supported and goes straight into the database"). Developer comment confirms the moderation bot opens every thread with a live session — and the session cookie is not HttpOnly.
-* **Breach (Stored XSS):** Created a forum post containing `<img src=x onerror="...">` that steals the session cookie via `document.cookie`. When the moderation bot visits the thread, the payload fires and exfiltrates the cookie to an external endpoint.
+* **Breach (Stored XSS):** Created a forum post containing `<script>fetch(...)</script>` that steals the session cookie via `document.cookie`. When the moderation bot visits the thread, the payload fires and exfiltrates the cookie to an external endpoint.
 * **Flag:** `FLAG{xss_st0r3d_1s_n0t_4_f34tur3_w1l}`
 
 ---
