@@ -29,7 +29,7 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 | IDNT-02 | User registration process | Open | test mass-assignment (`role`,`verified`,`isAdmin`); `PATCH /api/profile` accepts `role` (comment) | — |
 | IDNT-04 | Account enumeration | Open | login/reset error-message differences | — |
 | ATHN-02 | Default credentials | Open | try common/default app creds | — |
-| ATHN-03 | Weak lockout mechanism | Open | login form — check rate-limit/brute-force | — |
+| ATHN-03 | Weak lockout mechanism | Fail | login form — no rate-limit; dictionary attack succeeded (Phase 2). NOTE: login field is **`identity`**, not `email` — early probes against `email=` were void | [walkthrough Phase 2](../walkthrough.md) |
 | ATHN-04 | Bypass authentication schema | Open | forced browsing; `/internal/config` localhost gate | — |
 | ATHN-09 | Weak password change/reset | Open | inspect reset flow + token | — |
 | ATHZ-01 | Directory traversal / file include | Fail | **`/projects/download?file=../private_notes.txt`** escapes the base dir (unsanitised path join; base provably sits one level inside `data/` — `../private_notes.txt` and `../../data/private_notes.txt` hit the same file; base name not observable black-box); target file named by `/backup`'s leaked `x-backup-exclude` header | [arbitrary_file_download](../arbitrary_file_download/explanation.md) |
@@ -46,7 +46,8 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 | INPV-12 | Command injection | Open | any endpoint shelling out | — |
 | INPV-19 | Server-Side Request Forgery | Open | `/internal/config` "localhost only" | — |
 | ERRH-01 | Improper error handling | Pass | 404 is a clean custom page, no stack traces (re-check on 500) | — |
-| BUSL-* | Business logic | Open | e.g. tampering `/api/grades`, workflow bypass | — |
+| BUSL-* | Business logic | Fail | **`PATCH /api/profile` also accepts `level` (undocumented)**; server auto-promotes `role` student→staff when `level ≥ 42` ("sophie is level 42"); caps at staff, no demotion. Second privesc vector alongside ATHZ-03 | pending folder |
+| IDNT-02 | Registration/mass-assign | Fail | `role` writable (Phase 5) **and `level` writable (BUSL above)**; app delegates unknown identities to PocketBase auth → PB admin can mint real app sessions of any role | [Patch_to_Cadet](../Patch_to_Cadet/explanation.md) |
 | CLNT-* | Client-side (DOM-XSS, clickjacking) | Open | no `X-Frame-Options`; check DOM sinks | — |
 | APIT-* | API testing | Open | FastAPI REST + PocketBase API surface | — |
 
