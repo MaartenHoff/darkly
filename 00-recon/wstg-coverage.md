@@ -22,7 +22,7 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 | INFO-05 | Review webpage content | Fail | per-page HTML comments leak a full roadmap (file-download, XSS, `role` mass-assign, JWT/SSRF, hidden endpoints); JS confirms session JWT not HttpOnly | [recon notes](notes.md#page-content--wstg-info-05-review-web-page-content) |
 | INFO-06 | Identify entry points | Done | route inventory built ([notes](notes.md#endpoints--parameters)); nav adds `/agenda`, `/redirect`; no `/register` path found | — |
 | CLNT-04 | Open redirect | Fail | `/redirect?next=` reflects arbitrary URL into `307 Location`, no allow-list (verified external + internal) | [redirect_phishing](../redirect_phishing/explanation.md) (no flag) |
-| CONF-04 | Backup & unreferenced files | Open | `/backup` → 403 (exists); enumerate | — |
+| CONF-04 | Backup & unreferenced files | Fail | `/backup` → 403 body, but response headers leak backup config: `x-backup-dest: localhost:/opt/pocketbase/pb_data`, `x-backup-exclude: data/private_notes.txt` (names the traversal target) | [arbitrary_file_download](../arbitrary_file_download/explanation.md) (chained) |
 | CONF-05 | Enumerate admin interfaces | Open | PocketBase admin `/_/` (200); `/admin` → 302 login; `/api/docs-internal` (302, "no staff check") | — |
 | CONF-06 | Test HTTP methods | Open | verb-probe key routes (`OPTIONS`, `Allow`) | — |
 | CONF-07 | HSTS | Open | plain HTTP, likely missing — confirm & note | — |
@@ -32,7 +32,7 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 | ATHN-03 | Weak lockout mechanism | Open | login form — check rate-limit/brute-force | — |
 | ATHN-04 | Bypass authentication schema | Open | forced browsing; `/internal/config` localhost gate | — |
 | ATHN-09 | Weak password change/reset | Open | inspect reset flow + token | — |
-| ATHZ-01 | Directory traversal / file include | Open | **`/projects/download?file=`** "serves any file you ask for" (comment) | — |
+| ATHZ-01 | Directory traversal / file include | Fail | **`/projects/download?file=../private_notes.txt`** escapes the base dir (unsanitised path join; base provably sits one level inside `data/` — `../private_notes.txt` and `../../data/private_notes.txt` hit the same file; base name not observable black-box); target file named by `/backup`'s leaked `x-backup-exclude` header | [arbitrary_file_download](../arbitrary_file_download/explanation.md) |
 | ATHZ-02 | Bypass authorization schema | Open | `/staff` (200 public), `/backup`, `/api/grades` | — |
 | ATHZ-03 | Privilege escalation | Open | **core of the 4-flag admin chain**; `PATCH /api/profile` `role` field (comment) | — |
 | ATHZ-04 | Insecure Direct Object References | Open | `/api/grades?id=`, PocketBase records | — |
@@ -69,9 +69,13 @@ Target: FastAPI (`uvicorn`, `:4942`) + PocketBase (`:8090`), plain HTTP over NAT
 Mandatory target: **6 flags · 10 vulnerabilities** documented (each = one `Fail`
 above with a breach folder). Bonus: **10 flags · 15 vulnerabilities**.
 
-- Fails confirmed: 4 (INFO-02, INFO-03, INFO-05 — info-disclosure; CLNT-04 open redirect)
-- Recon done: INFO-02/03/05 formalized, INFO-06 (route inventory)
-- Open leads with strong signal (comment-confirmed): INPV-05 (login SQLi), INPV-01
-  (newsletter), INPV-02 (forum), INPV-07 (XXE), INPV-19/SESS-10 (`/internal/config`
-  JWT/SSRF), ATHZ-01 (`/projects/download`), ATHZ-03/IDNT-02 (`PATCH /api/profile` role),
-  SESS-02 (JWT not HttpOnly)
+- **Unique flags captured: 9** — `1d0r`, `md5`, `just_p4tch`, `unr3str1ct3d_upl0ad`,
+  `d3fus3dxml`, `r3s3t_t0k3n`, `th3_und3rsc0r3`, `xss_st0r3d`, **`d0t_d0t_sl4sh` (NEW —
+  ATHZ-01 path traversal)**. DB holds exactly 5 (all found via PB admin); the rest are
+  app-emitted / file-based.
+- Fails confirmed: INFO-02/03/05 (info-disclosure), CLNT-04 (open redirect), CONF-04
+  (`/backup` header leak), ATHZ-01 (path traversal) + every flag-bearing breach folder.
+- Verified dead / flag-less (probed live): INPV-05 login SQLi (parameterized — no
+  error/bypass), INPV-01 newsletter reflected XSS (confirmed vuln, no victim/bot →
+  no flag), INPV-12 command injection (no shell sink), `/api/telemetry/heartbeat`
+  (fixed response, decoy).

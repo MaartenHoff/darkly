@@ -82,3 +82,10 @@
 * **Recon:** `/forum` supports HTML in posts ("HTML is supported and goes straight into the database"). Developer comment confirms the moderation bot opens every thread with a live session — and the session cookie is not HttpOnly.
 * **Breach (Stored XSS):** Created a forum post containing `<img src=x onerror="...">` that steals the session cookie via `document.cookie`. When the moderation bot visits the thread, the payload fires and exfiltrates the cookie to an external endpoint.
 * **Flag:** `FLAG{xss_st0r3d_1s_n0t_4_f34tur3_w1l}`
+
+---
+
+## Phase 13: Path Traversal / Arbitrary File Download
+* **Recon (header breadcrumb):** `/backup` returns `403`, but its response headers leak `x-backup-exclude: data/private_notes.txt` — naming a sensitive file kept out of the webroot ("check the response headers" hint).
+* **Breach (Path Traversal):** `GET /projects/download?file=` joins the parameter onto an internal base dir without sanitisation. `?file=../private_notes.txt` escapes it and returns the excluded ops note. The base's name isn't observable black-box, but it provably sits one level inside `data/` (both `../private_notes.txt` and `../../data/private_notes.txt` return the same file). (Containment allows anything under `<app>/data`, so source/`/etc`/`pb_data` still return `403` — only this file is reachable.)
+* **Flag:** `FLAG{d0t_d0t_sl4sh_4ll_th3_w4y_d0wn}`
