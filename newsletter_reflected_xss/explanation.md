@@ -1,9 +1,5 @@
 # Reflected XSS — Newsletter "Subscribed" Banner
 
-> Status: ☒ exploited ☒ explained
-> Flag: _none observed_ (probed; no banner/flag issued by this endpoint)
-> WSTG: `WSTG-INPV-01` (Reflected Cross-Site Scripting) — see [`00-recon/wstg-coverage.md`](../00-recon/wstg-coverage.md)
-
 ## Where
 
 - Endpoint: `POST /newsletter` — **form-encoded** (`email=...`), *not* JSON

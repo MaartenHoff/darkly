@@ -1,7 +1,5 @@
 # Path Traversal / Arbitrary File Download
 
-> Flag: `FLAG{d0t_d0t_sl4sh_4ll_th3_w4y_d0wn}` · WSTG-ATHZ-01 · CWE-22
-
 ## Where
 `GET /projects/download?file=` (any authenticated session) joins `file=` onto an
 internal base dir without normalising, so `../` walks out. A partial guard keeps
@@ -14,9 +12,10 @@ GET /projects/download?file=../private_notes.txt   →  200, file contents
 
 ## Finding the target
 Two unknowns, recovered separately:
-- **Name** — `/backup` returns `403` but leaks a header
-  `x-backup-exclude: data/private_notes.txt` (the forum's "check the response
-  headers" hint). Gives the filename + that it lives in `data/`; not the depth.
+- **Name** — `/backup` (itself found via `robots.txt`, which `Disallow`s it)
+  returns `403` but leaks a header `x-backup-exclude: data/private_notes.txt`
+  (the forum's "check the response headers" hint). Gives the filename + that it
+  lives in `data/`; not the depth.
 - **Depth** — by trial: `?file=private_notes.txt` → `404`; `?file=../private_notes.txt`
   → `200`. One `../` climbs the base into `data/`. (`../../data/private_notes.txt`
   hits the same file, confirming the base sits one level inside `data/`.) The

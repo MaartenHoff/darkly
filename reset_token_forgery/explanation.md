@@ -1,88 +1,36 @@
 # MD5(email) Reset-Token Forgery
 
-> Status: ☒ exploited ☒ explained
-> Flag: `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` (via PocketBase `recovery_code` after takeover — shared with `pocketbase_field_exposure/`)
-> WSTG: `WSTG-ATHN-09` (Testing for Weak Password Change or Reset Functionalities) — see [`00-recon/wstg-coverage.md`](../00-recon/wstg-coverage.md)
-
 ## Where
-
-- Endpoint: `POST /reset-password/confirm` (token issued/validated against `GET /reset-password?email=&token=`)
-- Parameter: `token`
+`POST /reset-password/confirm` — params `email`, `token`, `new_password`; the `token` is validated against `GET /reset-password?email=&token=`.
 
 ## How it works
+The reset token is just **`MD5(email)`** — no key, no randomness. Anyone who knows a target's email can compute a valid token offline and set a new password, with no inbox access and no rate-limited guessing. Staff/`god` accounts are exempted server-side ("use 42 SSO"); every regular student is vulnerable.
 
-The password-reset token is not a random, single-use secret — it's simply
-`MD5(email)`. MD5 has no key, so anyone who knows (or guesses) a target's
-email address can compute a valid reset token entirely offline, with no need
-to intercept the target's inbox and no rate-limited guessing involved.
+## Exploitation (`./exploit.sh`)
+1. **Forge** — `md5(target_email)`.
+2. **Reset** — `POST /reset-password/confirm` with `email`, the forged `token`, and a chosen `new_password`.
+3. **Log in** as the target to confirm takeover.
 
-Staff and `god`-role accounts are exempted server-side ("Staff and god
-accounts use 42 SSO"), but every regular student account is vulnerable.
+Verified against `benjamin@student.42.tech`: `md5(…) = f1640a02…b3ba` → `302 /login?success=Password+updated` → login issued a genuine server-signed JWT (`{"login":"benjamin","role":"student",…}`). Against `wil` (staff) it was blocked (`error=Staff+and+god+accounts+use+42+SSO`) — confirmed real, since the attempted password still failed to log in, so wil's password was untouched.
 
-## Exploitation (step by step)
+**Full sweep:**
 
-Run `./exploit.sh`:
+| Account | Result |
+|---|---|
+| benjamin / dorian / thanos @student | takeover OK — `recovery_code` = `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
+| anne-sophie @student | takeover OK — `recovery_code` empty |
+| jdoe, emilie (cadet) · wil (staff) · sophie (god) | SSO-blocked |
 
-1. **Forge the token** — compute `md5(target_email)` locally.
-2. **Set a new password** — `POST /reset-password/confirm` with `email`, the
-   forged `token`, and a `new_password` of the attacker's choosing.
-3. **Log in** as the target with the new password to confirm takeover.
-
-Verified against `benjamin@student.42.tech`:
-`md5("benjamin@student.42.tech") = f1640a02eeccb971463836da7300b3ba` →
-`POST /reset-password/confirm` → `302 /login?success=Password+updated` →
-logging in with the new password issued a genuine, server-signed session JWT:
-
-```
-{"sub":"8l16vboi47dmand","login":"benjamin","role":"student","exp":...}
-```
-
-Tried first against `wil@42network.fr` (STAFF) — blocked:
-`302 /reset-password?error=Staff+and+god+accounts+use+42+SSO`. Confirmed the
-block was real (not just a misleading redirect) by attempting to log in with
-the password we'd tried to set: it failed, no session was issued, proving
-wil's real password was untouched.
-
-**Full sweep** (`../reset_all_students/exploit.sh`) against every known
-account:
-
-| Account | Result | recovery_code |
-|---------|--------|---------------|
-| benjamin@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
-| dorian@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
-| thanos@student.42.tech | takeover OK | `FLAG{r3s3t_t0k3n_w4s_just_md5_lol}` |
-| anne-sophie@student.42.tech | takeover OK | _(empty)_ |
-| jdoe@student.42.tech | SSO-blocked (cadet role) | — |
-| emilie@42.tech | SSO-blocked (cadet) | — |
-| wil@42network.fr | SSO-blocked (staff) | — |
-| sophie@42.tech | SSO-blocked (god) | — |
-
-The flag is shared across benjamin/dorian/thanos — no unique flag per
-account. (The same flag is also exposed independently via the grades API
-and PocketBase field-level disclosure; see
-[`pocketbase_field_exposure/`](../pocketbase_field_exposure/).)
+The flag is shared across benjamin/dorian/thanos (no per-account flag). Its value is read from `recovery_code` via PocketBase's direct read (the field-exposure bug) — the reset flow only sets the password, it never displays that field. See [`pocketbase_field_exposure/`](../pocketbase_field_exposure/).
 
 ## Impact
-
-Full, silent account takeover of any non-staff/god user, given only their
-email address (this app uses a predictable `firstname@student.42.tech`
-convention, making targets easy to guess). An attacker can lock the
-legitimate owner out and assume their identity indefinitely. Staff/god
-accounts are currently protected only by an SSO carve-out in this one code
-path — not by a structural fix to the token itself.
+Silent, full account takeover of any non-staff/god user from just their email — and emails are guessable (`firstname@student.42.tech`). The attacker can lock out the owner and hold the identity indefinitely. Staff/god are protected only by an SSO carve-out in this one code path, not by any fix to the token itself.
 
 ## Remediation
-
-1. **Generate reset tokens with a CSPRNG** (32+ random bytes), never derived
-   from public/guessable user data.
-2. **Make tokens single-use and short-lived**, invalidated after first use or
-   a short TTL.
-3. **Never expose the token in a URL** — deliver it only via the registered
-   email address.
-4. **Rate-limit and log** reset attempts to detect enumeration/abuse.
+1. Generate tokens with a CSPRNG (32+ random bytes), never derived from user data.
+2. Make them single-use and short-lived.
+3. Deliver the token only via the registered email, never in a guessable URL.
+4. Rate-limit and log reset attempts.
 
 ## References
-
-- WSTG: `WSTG-ATHN-09` (Testing for Weak Password Change or Reset Functionalities)
-- OWASP Top 10: A07:2021 (Identification and Authentication Failures)
-- Other: [`attempts/insecure_password_reset/`](../attempts/insecure_password_reset/) (original discovery notes), [`attempts/sql_injection/`](../attempts/sql_injection/) (ruled out SQLi on this same endpoint)
+WSTG-ATHN-09 · OWASP A07:2021. Discovery: [`attempts/insecure_password_reset/`](../attempts/insecure_password_reset/); SQLi ruled out on this endpoint: [`attempts/sql_injection/`](../attempts/sql_injection/).

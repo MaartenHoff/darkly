@@ -1,11 +1,5 @@
 # Open PocketBase User-Create Rule → Self-Made God Account
 
-> Status: ☒ exploited ☒ explained
-> Flag: _no dedicated flag_ (privilege-escalation primitive; admin panel reachable
-> through it shows the known `FLAG{md5_…}` value)
-> WSTG: `WSTG-ATHZ-02` / OWASP API Security **API6:2023** (Unrestricted Access to
-> Sensitive Business Flows) & BFLA — see [`00-recon/wstg-coverage.md`](../00-recon/wstg-coverage.md)
-
 ## Where
 
 - Endpoint: `POST http://localhost:8090/api/collections/users/records`
