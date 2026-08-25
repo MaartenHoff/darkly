@@ -77,4 +77,4 @@ The lesson either way: any field on a table that a client can log into will even
 
 - WSTG: `WSTG-APIT-*` (API Testing) — not `ATHZ-04`/IDOR, since cross-user access is correctly blocked
 - OWASP API Security Top 10: `API3:2023` (Broken Object Property Level Authorization)
-- Other: [`reset_token_forgery/`](../reset_token_forgery/), [`jwt_fogery/`](../jwt_fogery/) (surfaced the PocketBase URL)
+- Other: [`reset_token_forgery/`](../reset_token_forgery/), [`jwt_forgery/`](../jwt_forgery/) (surfaced the PocketBase URL)

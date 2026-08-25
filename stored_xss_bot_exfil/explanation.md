@@ -99,7 +99,7 @@ FLAG{xss_st0r3d_1s_n0t_4_f34tur3_w1l}
 
 - **Full session takeover of the moderation bot's account** — its JWT is
   captured whole and can be replayed directly as a `session` cookie until it
-  expires (same mechanic as [`jwt_fogery/`](../jwt_fogery/), just stolen
+  expires (same mechanic as [`jwt_forgery/`](../jwt_forgery/), just stolen
   instead of forged).
 - **No attacker infrastructure required.** The exfil sink is the
   application's own public endpoint, which is a real severity bump over a
@@ -129,7 +129,7 @@ FLAG{xss_st0r3d_1s_n0t_4_f34tur3_w1l}
 
 - WSTG: `WSTG-INPV-02` (Stored Cross-Site Scripting)
 - OWASP Top 10: A03:2021 (Injection)
-- Other: [`jwt_fogery/`](../jwt_fogery/) (what a stolen/forged session token
+- Other: [`jwt_forgery/`](../jwt_forgery/) (what a stolen/forged session token
   gets you once you hold one); the cookie's missing `HttpOnly` flag is tracked
   as an open item under ticket `#4201` in the app's own dev comments.
   A second, separate reflected-XSS sink exists on `/newsletter`
